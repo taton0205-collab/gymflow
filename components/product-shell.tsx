@@ -84,7 +84,7 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="relative hidden flex-1 md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               className="h-10 w-full max-w-xl rounded-md border bg-card/80 pl-10 pr-4 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
               placeholder="Buscar socio, pago, rutina o producto"
@@ -149,7 +149,7 @@ function SidebarContent({ user, onLogout }: { user: any; onLogout: () => void })
         {navigation.map((item) => (
           <Link
             key={item.label}
-            href={item.href}
+            href={item.href as any}
             className={cn(
               "flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-muted-foreground transition hover:bg-muted/70 hover:text-foreground",
               (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))) && "bg-foreground text-background hover:bg-foreground hover:text-background shadow-lg"
@@ -162,7 +162,6 @@ function SidebarContent({ user, onLogout }: { user: any; onLogout: () => void })
       </nav>
 
       <div className="mt-auto pt-6 space-y-4">
-        {/* User Profile & Logout */}
         <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
