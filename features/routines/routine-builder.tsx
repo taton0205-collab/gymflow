@@ -1,5 +1,6 @@
 "use client";
 
+// V1.0.1 - Fix Production Build
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
