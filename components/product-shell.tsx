@@ -29,7 +29,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
-// Forzamos que TypeScript no se queje de los links
 const navigation = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Socios", href: "/members", icon: Users },
@@ -42,7 +41,7 @@ const navigation = [
   { label: "Reportes", href: "/reports", icon: BarChart3 },
   { label: "IA Advisor", href: "/advisor", icon: Sparkles },
   { label: "Configuracion", href: "/settings", icon: Settings }
-] as const;
+];
 
 export function ProductShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -130,7 +129,7 @@ function SidebarContent({ user, onLogout }: { user: any; onLogout: () => void })
             href={item.href as any}
             className={cn(
               "flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-bold text-muted-foreground transition hover:bg-muted/70 hover:text-foreground",
-              (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))) && "bg-foreground text-background shadow-xl"
+              (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))) && "bg-foreground text-background hover:bg-foreground hover:text-background shadow-xl"
             )}
           >
             <item.icon className="h-4 w-4" />

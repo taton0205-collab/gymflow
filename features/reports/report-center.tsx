@@ -35,13 +35,24 @@ export function ReportCenter() {
 
       if (error) throw error;
 
-      const flattenedData = (data || []).map((p: any) => ({
-        Fecha: p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "N/A",
-        Socio: Array.isArray(p.members) ? p.members[0]?.full_name : p.members?.full_name || "Desconocido",
-        Monto: p.amount,
-        Metodo: p.method,
-        Estado: p.status
-      }));
+      const flattenedData = (data || []).map((p: any) => {
+        let memberName = "Desconocido";
+        if (p.members) {
+          if (Array.isArray(p.members)) {
+            memberName = p.members[0]?.full_name || "Desconocido";
+          } else {
+            memberName = p.members.full_name || "Desconocido";
+          }
+        }
+
+        return {
+          Fecha: p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "N/A",
+          Socio: memberName,
+          Monto: p.amount,
+          Metodo: p.method,
+          Estado: p.status
+        };
+      });
 
       downloadCSV(flattenedData, "pagos-gymflow.csv");
     } catch (error: any) {
