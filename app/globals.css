@@ -10,8 +10,8 @@
   --muted: 0 0% 96.1%;
   --muted-foreground: 0 0% 45.1%;
   --border: 0 0% 89.8%;
-  --primary: 0 72% 51%; /* ROJO SECUTOR */
-  --primary-foreground: 0 0% 98%;
+  --primary: 38 92% 50%; /* AMARILLO ORO SECUTOR */
+  --primary-foreground: 0 0% 9%;
   --accent: 0 0% 9%;
   --accent-foreground: 0 0% 98%;
   --success: 142 70% 45%;
@@ -20,23 +20,23 @@
 }
 
 .dark {
-  --background: 0 0% 3.9%;
+  --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
-  --card: 0 0% 7%;
+  --card: 240 10% 6%;
   --card-foreground: 0 0% 98%;
-  --muted: 0 0% 14.9%;
-  --muted-foreground: 0 0% 63.9%;
-  --border: 0 0% 14.9%;
-  --primary: 0 72% 51%; /* ROJO SECUTOR */
-  --primary-foreground: 0 0% 98%;
-  --accent: 0 0% 98%;
-  --accent-foreground: 0 0% 9%;
+  --muted: 240 10% 12%;
+  --muted-foreground: 240 5% 64.9%;
+  --border: 240 5% 15%;
+  --primary: 45 93% 47%; /* ORO PREMIUM - NO CHILLÓN */
+  --primary-foreground: 0 0% 5%;
+  --accent: 45 93% 47%;
+  --accent-foreground: 0 0% 5%;
 }
 
 * { border-color: hsl(var(--border)); }
 body {
   min-height: 100vh;
-  background: radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 40rem), hsl(var(--background));
+  background: radial-gradient(circle at top left, hsl(var(--primary) / 0.07), transparent 50rem), hsl(var(--background));
   color: hsl(var(--foreground));
 }
 .fixed.inset-0.z-\[9999\] { z-index: 99999 !important; backdrop-filter: blur(10px) !important; background-color: rgba(0, 0, 0, 0.8) !important; }
