@@ -1,0 +1,193 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  Activity,
+  BarChart3,
+  Bell,
+  Boxes,
+  CalendarClock,
+  CreditCard,
+  Dumbbell,
+  LayoutDashboard,
+  Menu,
+  Moon,
+  QrCode,
+  Search,
+  Settings,
+  Sparkles,
+  Sun,
+  Users,
+  X,
+  LogOut,
+  User as UserIcon
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+
+const navigation = [
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Socios", href: "/members", icon: Users },
+  { label: "Planes", href: "/plans", icon: CalendarClock },
+  { label: "Pagos", href: "/payments", icon: CreditCard },
+  { label: "Acceso QR", href: "/access", icon: QrCode },
+  { label: "Rutinas", href: "/routines", icon: Dumbbell },
+  { label: "Progreso", href: "/progress", icon: Activity },
+  { label: "Inventario", href: "/inventory", icon: Boxes },
+  { label: "Reportes", href: "/reports", icon: BarChart3 },
+  { label: "IA Advisor", href: "/advisor", icon: Sparkles },
+  { label: "Configuracion", href: "/settings", icon: Settings }
+];
+
+export function ProductShell({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [dark, setDark] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+    });
+
+    const saved = window.localStorage.getItem("gymflow-theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    setDark(saved ? saved === "dark" : prefersDark);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+    window.localStorage.setItem("gymflow-theme", dark ? "dark" : "light");
+  }, [dark]);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
+
+  return (
+    <div className="min-h-screen bg-transparent">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r bg-card/70 backdrop-blur-2xl lg:block">
+        <SidebarContent user={user} onLogout={handleLogout} />
+      </aside>
+
+      <header className="sticky top-0 z-30 border-b bg-background/74 backdrop-blur-2xl lg:ml-72">
+        <div className="flex h-[68px] items-center gap-3 px-4 sm:px-8">
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="relative hidden flex-1 md:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              className="h-10 w-full max-w-xl rounded-md border bg-card/80 pl-10 pr-4 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
+              placeholder="Buscar socio, pago, rutina o producto"
+            />
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="icon" aria-label="Notificaciones">
+              <Bell className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setDark((value) => !value)} aria-label="Cambiar tema">
+              {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+            <div className="hidden h-9 items-center gap-3 rounded-md border bg-card/70 px-2.5 shadow-hairline sm:flex">
+              <div className="h-6 w-6 rounded-md bg-gradient-to-br from-primary/20 to-accent/20" />
+              <span className="text-sm font-bold text-foreground">Atlas Gym</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button className="absolute inset-0 bg-foreground/20" aria-label="Cerrar menu" onClick={() => setMobileOpen(false)} />
+          <motion.aside
+            initial={{ x: -288 }}
+            animate={{ x: 0 }}
+            exit={{ x: -288 }}
+            transition={{ type: "spring", stiffness: 260, damping: 28 }}
+            className="relative h-full w-72 border-r bg-card"
+          >
+            <Button variant="ghost" size="icon" className="absolute right-3 top-3" onClick={() => setMobileOpen(false)} aria-label="Cerrar menu">
+              <X className="h-5 w-5" />
+            </Button>
+            <SidebarContent user={user} onLogout={handleLogout} />
+          </motion.aside>
+        </div>
+      ) : null}
+
+      <main className="lg:ml-72">
+        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-8 lg:py-10">{children}</div>
+      </main>
+    </div>
+  );
+}
+
+function SidebarContent({ user, onLogout }: { user: any; onLogout: () => void }) {
+  const pathname = usePathname();
+
+  return (
+    <div className="flex h-full flex-col px-4 py-6">
+      <div className="flex items-center gap-3 px-2">
+        <div className="grid h-10 w-10 place-items-center rounded-md bg-foreground text-background shadow-hairline">
+          <Dumbbell className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-black uppercase tracking-tighter italic">GymFlow Live</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">SaaS Management</p>
+        </div>
+      </div>
+
+      <nav className="mt-9 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
+        {navigation.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className={cn(
+              "flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-muted-foreground transition hover:bg-muted/70 hover:text-foreground",
+              (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))) && "bg-foreground text-background hover:bg-foreground hover:text-background shadow-lg"
+            )}
+          >
+            <item.icon className="h-4 w-4" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mt-auto pt-6 space-y-4">
+        {/* User Profile & Logout */}
+        <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <UserIcon className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase truncate text-foreground">{user?.email?.split('@')[0] || "Administrador"}</p>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase truncate tracking-tight">{user?.email || "Cargando..."}</p>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest"
+          >
+            <LogOut className="h-4 w-4" /> Salir del Sistema
+          </button>
+        </div>
+
+        <div className="rounded-xl bg-primary/10 p-4 border border-primary/20">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
+            <Sparkles className="h-4 w-4 text-primary" /> AI Active
+          </div>
+          <p className="mt-2 text-[10px] font-bold leading-relaxed text-muted-foreground uppercase">Sistema de monitoreo comercial activo y seguro.</p>
+        </div>
+      </div>
+    </div>
+  );
+}

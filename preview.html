@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GymFlow Preview</title>
+    <style>
+      :root {
+        --bg: #f7f6f2;
+        --fg: #1b2028;
+        --card: #ffffff;
+        --muted: #eef0f3;
+        --muted-fg: #717986;
+        --border: #e1e4e9;
+        --primary: #2563eb;
+        --accent: #22967f;
+        --warning: #d9900d;
+        --danger: #c83d3d;
+        --shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
+      }
+
+      .dark {
+        --bg: #10131a;
+        --fg: #f1f5f9;
+        --card: #181c24;
+        --muted: #242935;
+        --muted-fg: #a6afbb;
+        --border: #303644;
+        --primary: #60a5fa;
+        --accent: #40c7a3;
+        --warning: #fbbf24;
+        --danger: #f87171;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 0 0, color-mix(in srgb, var(--primary) 9%, transparent), transparent 520px),
+          var(--bg);
+        color: var(--fg);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+      }
+
+      aside {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        border-right: 1px solid var(--border);
+        background: color-mix(in srgb, var(--card) 72%, transparent);
+        backdrop-filter: blur(24px);
+        padding: 24px 16px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 8px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: var(--fg);
+        color: var(--bg);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+      }
+
+      .brand strong,
+      .brand span {
+        display: block;
+      }
+
+      .brand span,
+      .muted {
+        color: var(--muted-fg);
+      }
+
+      nav {
+        margin-top: 36px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .nav-item {
+        width: 100%;
+        height: 40px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted-fg);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .nav-item:hover,
+      .nav-item.active {
+        background: var(--fg);
+        color: var(--bg);
+      }
+
+      .advisor-box {
+        margin-top: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--bg) 78%, transparent);
+        padding: 14px;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        height: 68px;
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg) 76%, transparent);
+        backdrop-filter: blur(24px);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 0 24px;
+      }
+
+      .search {
+        max-width: 560px;
+        flex: 1;
+        height: 40px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--card) 84%, transparent);
+        color: var(--fg);
+        padding: 0 14px;
+        outline: 0;
+      }
+
+      .icon-button,
+      .primary,
+      .secondary {
+        height: 40px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        cursor: pointer;
+      }
+
+      .icon-button {
+        width: 40px;
+        background: var(--card);
+        color: var(--fg);
+      }
+
+      .primary {
+        border-color: var(--fg);
+        background: var(--fg);
+        color: var(--bg);
+        padding: 0 16px;
+      }
+
+      .secondary {
+        background: color-mix(in srgb, var(--card) 78%, transparent);
+        color: var(--fg);
+        padding: 0 16px;
+      }
+
+      .content {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 38px 24px;
+      }
+
+      .topline {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--card) 76%, transparent);
+        box-shadow: var(--shadow);
+        padding: 24px;
+        backdrop-filter: blur(18px);
+      }
+
+      .badge {
+        display: inline-flex;
+        border-radius: 7px;
+        padding: 5px 9px;
+        background: color-mix(in srgb, var(--primary) 12%, transparent);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 14px 0 10px;
+        font-size: clamp(34px, 4vw, 52px);
+        line-height: 1.06;
+        letter-spacing: 0;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+
+      .charts {
+        grid-template-columns: 1.35fr 0.65fr;
+        margin-top: 16px;
+      }
+
+      .three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--card) 78%, transparent);
+        box-shadow: var(--shadow);
+        padding: 20px;
+        backdrop-filter: blur(18px);
+      }
+
+      .metric-head,
+      .row,
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .metric-value {
+        margin-top: 18px;
+        font-size: 31px;
+        font-weight: 750;
+      }
+
+      .pill {
+        display: inline-flex;
+        border-radius: 7px;
+        padding: 5px 8px;
+        background: var(--muted);
+        color: var(--muted-fg);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill.good {
+        background: color-mix(in srgb, var(--accent) 13%, transparent);
+        color: var(--accent);
+      }
+
+      .pill.warn {
+        background: color-mix(in srgb, var(--warning) 15%, transparent);
+        color: var(--warning);
+      }
+
+      .bars {
+        height: 250px;
+        display: flex;
+        align-items: end;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .bar-wrap {
+        flex: 1;
+        display: grid;
+        gap: 8px;
+        align-items: end;
+        text-align: center;
+        color: var(--muted-fg);
+        font-size: 11px;
+      }
+
+      .bar {
+        min-height: 18px;
+        border-radius: 7px 7px 0 0;
+        background: linear-gradient(to top, var(--primary), color-mix(in srgb, var(--primary) 48%, white));
+      }
+
+      .mini-bars {
+        height: 165px;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        align-items: end;
+        gap: 6px;
+        margin-top: 26px;
+      }
+
+      .mini-bar {
+        border-radius: 5px 5px 0 0;
+        background: var(--accent);
+      }
+
+      .soft-row {
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--muted) 72%, transparent);
+        padding: 13px;
+        margin-top: 12px;
+      }
+
+      .module-page {
+        display: none;
+      }
+
+      .module-page.active {
+        display: block;
+      }
+
+      .module-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 24px;
+      }
+
+      .calendar-layout {
+        grid-template-columns: 1fr 360px;
+        margin-top: 16px;
+      }
+
+      .calendar-week,
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .calendar-week {
+        margin-top: 20px;
+        color: var(--muted-fg);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .calendar-grid {
+        margin-top: 8px;
+      }
+
+      .calendar-day {
+        min-height: 96px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--bg) 76%, transparent);
+        padding: 8px;
+      }
+
+      .calendar-day-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .calendar-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--warning);
+      }
+
+      .calendar-member {
+        margin-top: 7px;
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--primary) 12%, transparent);
+        padding: 6px;
+        font-size: 11px;
+        line-height: 1.35;
+        overflow: hidden;
+      }
+
+      .calendar-member strong,
+      .calendar-member span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 1050px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        aside {
+          position: static;
+          height: auto;
+        }
+
+        nav {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .metrics,
+        .charts,
+        .three,
+        .calendar-layout,
+        .module-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 680px) {
+        header {
+          padding: 12px;
+          height: auto;
+          flex-wrap: wrap;
+        }
+
+        .search {
+          flex-basis: 100%;
+          order: 2;
+        }
+
+        .topline,
+        .metrics,
+        .charts,
+        .three,
+        .calendar-layout,
+        .module-grid {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+
+        nav {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside>
+        <div class="brand">
+          <div class="logo">GF</div>
+          <div>
+            <strong>GymFlow</strong>
+            <span>Operations Suite</span>
+          </div>
+        </div>
+
+        <nav id="nav"></nav>
+
+        <div class="advisor-box">
+          <strong>AI Advisor</strong>
+          <p class="muted">14 cuotas vencen en los proximos 3 dias y el stock de creatina esta bajo.</p>
+        </div>
+      </aside>
+
+      <main>
+        <header>
+          <input class="search" placeholder="Buscar socio, pago, rutina o producto" />
+          <button class="icon-button" id="themeButton" aria-label="Cambiar tema">T</button>
+          <button class="icon-button" aria-label="Notificaciones">!</button>
+          <button class="secondary">Atlas Gym</button>
+        </header>
+
+        <div class="content" id="content"></div>
+      </main>
+    </div>
+
+    <script>
+      const modules = [
+        ["dashboard", "Dashboard", "Panel operativo", "Una vista clara para anticipar vencimientos, controlar ingresos y entender como se mueve el gimnasio.", "Nuevo socio"],
+        ["members", "Socios", "Socios", "Alta, edicion, historial de pagos, asistencia, lesiones, objetivos y observaciones de cada cliente.", "Registrar socio"],
+        ["plans", "Planes", "Planes", "Catalogo de membresias mensuales, trimestrales, semestrales, anuales, libres y personalizadas.", "Crear plan"],
+        ["payments", "Pagos", "Pagos", "Registro de pagos completos o parciales, vencimientos, metodos de pago y comprobantes.", "Registrar pago"],
+        ["access", "Acceso QR", "Acceso QR", "Escaneo QR, ingreso rapido, registro de entrada y salida, y validacion del estado de la cuota.", "Escanear QR"],
+        ["routines", "Rutinas", "Rutinas", "Constructor para entrenadores con ejercicios, series, repeticiones, peso, descanso, fotos y videos.", "Crear rutina"],
+        ["progress", "Progreso", "Progreso", "Peso, grasa corporal, masa muscular, medidas, fotos y graficos automaticos por socio.", "Cargar medicion"],
+        ["inventory", "Inventario", "Inventario", "Proteinas, creatina, shakers, indumentaria, accesorios, stock minimo, alertas y ventas.", "Agregar producto"],
+        ["reports", "Reportes", "Reportes", "Ingresos, socios nuevos, inactivos, retencion, asistencia, ventas y exportaciones.", "Generar reporte"],
+        ["advisor", "IA Advisor", "AI Advisor", "Asistente empresarial que analiza asistencia, ingresos, cuotas, churn, demanda horaria e inventario.", "Consultar IA"],
+        ["settings", "Configuracion", "Configuracion", "Logo, nombre del gimnasio, direccion, redes, horarios, metodos de pago e impuestos.", "Guardar cambios"]
+      ];
+
+      const metrics = [
+        ["Socios activos", "842", "+8.4%", "good"],
+        ["Socios vencidos", "37", "-3.1%", "warn"],
+        ["Ingresos del mes", "$18.2M", "+14.8%", "good"],
+        ["Ingresos diarios", "$742K", "+6.2%", "good"],
+        ["Nuevos socios", "64", "+11", ""]
+      ];
+
+      const revenue = [42, 58, 54, 68, 61, 78, 72, 84, 80, 92, 88, 96];
+      const attendance = [35, 28, 44, 52, 67, 81, 88, 74, 49, 31, 22, 18];
+      const membershipCalendar = [
+        [1],
+        [2, "Martina Gomez", "Mensual Pro"],
+        [3, "Lucas Ferreyra", "Trimestral"],
+        [4],
+        [5, "Camila Ortega", "Libre"],
+        [6],
+        [7, "Rocio Medina", "Mensual"],
+        [8],
+        [9, "Tomas Alvarez", "Anual"],
+        [10],
+        [11, "Agustin Perez", "Personalizado"],
+        [12],
+        [13],
+        [14, "Sofia Rivas", "Mensual Pro"]
+      ];
+
+      const nav = document.querySelector("#nav");
+      const content = document.querySelector("#content");
+
+      nav.innerHTML = modules
+        .map(([id, label]) => `<button class="nav-item" data-page="${id}"><span>${symbol(label)}</span>${label}</button>`)
+        .join("");
+
+      function symbol(label) {
+        const map = {
+          Dashboard: "D",
+          Socios: "S",
+          Planes: "P",
+          Pagos: "$",
+          "Acceso QR": "Q",
+          Rutinas: "R",
+          Progreso: "G",
+          Inventario: "I",
+          Reportes: "A",
+          "IA Advisor": "*",
+          Configuracion: "C"
+        };
+        return map[label] || "-";
+      }
+
+      function render(page = "dashboard") {
+        document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.page === page));
+        const module = modules.find(([id]) => id === page) || modules[0];
+
+        if (page === "dashboard") {
+          content.innerHTML = dashboard();
+          return;
+        }
+
+        content.innerHTML = modulePage(module);
+      }
+
+      function hero(label, title, description, action) {
+        return `
+          <section class="topline">
+            <div>
+              <span class="badge">${label}</span>
+              <h1>${title}</h1>
+              <p class="muted">${description}</p>
+            </div>
+            <div>
+              <button class="secondary">Exportar</button>
+              <button class="primary">${action}</button>
+            </div>
+          </section>
+        `;
+      }
+
+      function dashboard() {
+        return `
+          ${hero("Administrador", "Panel operativo", "Una vista clara para anticipar vencimientos, controlar ingresos y entender como se mueve el gimnasio.", "Nuevo socio")}
+          <section class="grid metrics">
+            ${metrics.map(([label, value, delta, tone]) => `
+              <article class="card">
+                <div class="metric-head"><span class="muted">${label}</span><span class="pill ${tone}">${delta}</span></div>
+                <div class="metric-value">${value}</div>
+              </article>
+            `).join("")}
+          </section>
+          <section class="grid charts">
+            <article class="card">
+              <div class="panel-head">
+                <div><strong>Ingresos mensuales</strong><p class="muted">Facturacion por periodo, pagos parciales incluidos.</p></div>
+                <span class="pill good">+14.8%</span>
+              </div>
+              <div class="bars">
+                ${revenue.map((h, index) => `<div class="bar-wrap"><div class="bar" style="height:${h}%"></div><span>${index + 1}</span></div>`).join("")}
+              </div>
+            </article>
+            <article class="card">
+              <div class="panel-head">
+                <div><strong>Asistencia por hora</strong><p class="muted">Entradas registradas por QR.</p></div>
+                <span class="pill">19:20</span>
+              </div>
+              <div class="mini-bars">
+                ${attendance.map((h) => `<div class="mini-bar" style="height:${h * 1.7}px"></div>`).join("")}
+              </div>
+              <div class="grid metrics" style="grid-template-columns:1fr 1fr;margin-top:18px">
+                <div class="soft-row"><span class="muted">Pico</span><br /><strong>19:20</strong></div>
+                <div class="soft-row"><span class="muted">Check-ins</span><br /><strong>318</strong></div>
+              </div>
+            </article>
+          </section>
+          <section class="grid calendar-layout">
+            <article class="card">
+              <div class="panel-head">
+                <div>
+                  <strong>Calendario de vencimientos</strong>
+                  <p class="muted">Vista rapida para anticipar cobros y contactar socios antes de que se venza la membresia.</p>
+                </div>
+                <span class="pill warn">7 vencimientos</span>
+              </div>
+              <div class="calendar-week">
+                <span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Vie</span><span>Sab</span><span>Dom</span>
+              </div>
+              <div class="calendar-grid">
+                ${membershipCalendar.map(([day, member, plan]) => `
+                  <div class="calendar-day">
+                    <div class="calendar-day-head"><span>${day}</span>${member ? '<span class="calendar-dot"></span>' : ""}</div>
+                    ${member ? `<div class="calendar-member"><strong>${member}</strong><span class="muted">${plan}</span></div>` : ""}
+                  </div>
+                `).join("")}
+              </div>
+            </article>
+            <article class="card">
+              <div class="panel-head">
+                <div>
+                  <strong>Acciones sugeridas</strong>
+                  <p class="muted">Gestion de renovaciones para esta semana.</p>
+                </div>
+                <span class="pill warn">Prioridad</span>
+              </div>
+              <div class="soft-row"><strong>Contactar hoy</strong><br /><span class="muted">Martina Gomez vence hoy.</span></div>
+              <div class="soft-row"><strong>Enviar recordatorio</strong><br /><span class="muted">Lucas Ferreyra y Rocio Medina vencen pronto.</span></div>
+              <div class="soft-row"><strong>Renovacion segura</strong><br /><span class="muted">Tomas Alvarez tiene plan anual.</span></div>
+            </article>
+          </section>
+          <section class="grid three">
+            ${panel("Proximos vencimientos", ["Martina Gomez - Mensual Pro - Hoy", "Lucas Ferreyra - Trimestral - Manana", "Camila Ortega - Libre - 3 dias"])}
+            ${panel("Cumpleanos", ["Nicolas Silva - Hoy - 29 anos", "Valentina Ruiz - Jueves - 34 anos", "Recordatorios listos para email y WhatsApp"])}
+            ${panel("AI Advisor", ["El horario de mayor concurrencia es de 18 a 21 hs.", "El plan mensual representa el 65% de los ingresos.", "La asistencia semanal bajo 18% frente al mes pasado.", "Conviene reponer creatina antes del viernes."])}
+          </section>
+        `;
+      }
+
+      function panel(title, rows) {
+        return `
+          <article class="card">
+            <div class="panel-head"><strong>${title}</strong><span class="pill">Activo</span></div>
+            ${rows.map((row) => `<div class="soft-row">${row}</div>`).join("")}
+          </article>
+        `;
+      }
+
+      function modulePage([id, label, title, description, action]) {
+        const cards = [
+          ["Flujo principal", "Acciones clave del modulo listas para conectar con Supabase y permisos por rol.", "Base lista"],
+          ["Estados y validacion", "Pantallas pensadas con vacios, errores, confirmaciones, loaders y feedback claro.", "UX definida"],
+          ["Escalabilidad", "Modelo preparado para auditoria, multi-tenant, reportes y futuras integraciones.", "Produccion"]
+        ];
+
+        return `
+          ${hero(label, title, description, action)}
+          <section class="grid module-grid">
+            ${cards.map(([cardTitle, cardDescription, status]) => `
+              <article class="card">
+                <div class="panel-head"><strong>${cardTitle}</strong><span class="pill">${status}</span></div>
+                <p class="muted" style="margin-top:14px;line-height:1.65">${cardDescription}</p>
+              </article>
+            `).join("")}
+          </section>
+        `;
+      }
+
+      nav.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-page]");
+        if (button) render(button.dataset.page);
+      });
+
+      document.querySelector("#themeButton").addEventListener("click", () => {
+        document.documentElement.classList.toggle("dark");
+      });
+
+      render();
+    </script>
+  </body>
+</html>
