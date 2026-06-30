@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { QrCode, Loader2, CheckCircle2, XCircle, User, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 export function QRScanner() {
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,6 @@ export function QRScanner() {
       }
 
       // 2. Verificar si su cuota está vencida
-      // Buscamos el último pago para ver la fecha de vencimiento
       const { data: lastPayment } = await supabase
         .from("payments")
         .select("next_due_date")
@@ -79,7 +79,6 @@ export function QRScanner() {
         plan: member.plans
       });
 
-      // Limpiar el token para el próximo escaneo
       setToken("");
 
     } catch (error: any) {
@@ -98,14 +97,14 @@ export function QRScanner() {
         </div>
         <h2 className="text-2xl font-black uppercase tracking-tight">Simulador de Escáner QR</h2>
         <p className="text-muted-foreground mt-2 max-w-sm">
-          En una app real, aquí se abriría la cámara. Por ahora, ingresa el <b>ID o Token</b> del socio.
+          Ingresa el <b>ID o Token</b> del socio para validar su ingreso.
         </p>
 
         <form onSubmit={handleScan} className="mt-8 w-full max-w-sm space-y-4">
           <input
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            placeholder="Pega el Token o ID del socio aquí..."
+            placeholder="Pega el Token aquí..."
             className="h-14 w-full rounded-xl border-2 bg-background px-4 text-center text-lg font-mono focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all"
             autoFocus
           />
