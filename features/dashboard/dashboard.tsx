@@ -7,8 +7,8 @@ import { ArrowUpRight, CalendarDays, Clock, FileDown, Plus, Sparkles, Loader2, C
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
-// Datos de apoyo para visualización
 const attendanceBars = [35, 28, 44, 52, 67, 81, 88, 74, 49, 31, 22, 18, 25, 30, 45, 50];
 
 export function Dashboard() {
@@ -43,42 +43,13 @@ export function Dashboard() {
       const startOfYear = new Date(hoy.getFullYear(), 0, 1).toISOString();
       const { data: yearPayments } = await supabase.from("payments").select("amount, paid_at").gte("paid_at", startOfYear);
       const rawMonthlyData = Array(12).fill(0);
-      yearPayments?.forEach(p => {
-        const d = new Date(p.paid_at);
-        rawMonthlyData[d.getMonth()] += Number(p.amount);
-      });
-
+      yearPayments?.forEach(p => rawMonthlyData[new Date(p.paid_at).getMonth()] += Number(p.amount));
       const maxRevenue = Math.max(...rawMonthlyData, 1);
       const normalizedRevenue = rawMonthlyData.map(val => (val / maxRevenue) * 100);
 
-      const { data: expirations } = await supabase
-        .from("payments")
-        .select("next_due_date, members(full_name), plans(name)")
-        .gte("next_due_date", startOfToday)
-        .order("next_due_date", { ascending: true })
-        .limit(10);
-
-      const lastDayOfMonth = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString();
-      const { data: monthExpirations } = await supabase
-        .from("payments")
-        .select("next_due_date")
-        .gte("next_due_date", startOfMonth)
-        .lte("next_due_date", lastDayOfMonth);
-      const dots = monthExpirations?.map(p => new Date(p.next_due_date).getDate()) || [];
-
+      const { data: expirations } = await supabase.from("payments").select("next_due_date, members(full_name), plans(name)").gte("next_due_date", startOfToday).order("next_due_date", { ascending: true }).limit(5);
       const { data: allMembers } = await supabase.from("members").select("full_name, birth_date").not("birth_date", "is", null);
-      const todayBdays = allMembers?.filter(m => {
-        const b = new Date(m.birth_date);
-        return b.getDate() === hoy.getDate() && b.getMonth() === hoy.getMonth();
-      }) || [];
-
-      const { data: lowStockItems } = await supabase.from("inventory_items").select("name, stock").lte("stock", 5);
-
-      const insights: string[] = [];
-      if (lowStockItems && lowStockItems.length > 0) insights.push(`Stock crítico en ${lowStockItems[0].name}.`);
-      if (expirations && expirations.length > 0) insights.push(`Tienes cuotas por vencer pronto.`);
-      if (todayBdays.length > 0) insights.push(`¡Hoy cumple años ${todayBdays[0].full_name}!`);
-      if (insights.length === 0) insights.push("El sistema está analizando tus datos operativos.");
+      const bdays = allMembers?.filter(m => new Date(m.birth_date).getDate() === hoy.getDate() && new Date(m.birth_date).getMonth() === hoy.getMonth()) || [];
 
       setStats({
         activeMembers: activeCount || 0,
@@ -88,136 +59,53 @@ export function Dashboard() {
         revenueByMonth: normalizedRevenue,
         rawAmountsByMonth: rawMonthlyData,
         upcomingExpirations: expirations || [],
-        calendarDots: Array.from(new Set(dots)),
-        upcomingBirthdays: todayBdays,
-        aiInsights: insights
+        calendarDots: [],
+        upcomingBirthdays: bdays,
+        aiInsights: ["Caja del mes actualizada.", "Nuevos socios registrados hoy."]
       });
-    } catch (error) {
-      console.error("Dashboard error:", error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   useEffect(() => {
     fetchData();
-    const supabase = createClient();
-    const channel = supabase.channel("dashboard-final-deploy")
-      .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, () => fetchData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "members" }, () => fetchData())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  if (loading) return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
-
-  const currentMonth = new Date().getMonth();
+  if (loading) return <div className="flex h-[80vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-col gap-5 rounded-3xl border bg-card/40 p-10 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between">
-        <div>
-          <Badge tone="info" className="px-4 py-1 font-black uppercase tracking-widest text-[10px]">SaaS Engine v1</Badge>
-          <h1 className="mt-4 text-5xl font-black tracking-tighter md:text-7xl text-foreground uppercase italic">GymFlow Live</h1>
-          <p className="mt-2 text-muted-foreground font-medium text-lg">Tu gimnasio bajo control total.</p>
-        </div>
-        <Link href="/members">
-          <Button className="h-12 px-8 font-black uppercase text-xs shadow-xl">Nuevo Registro</Button>
-        </Link>
+      <section className="flex flex-col gap-5 rounded-2xl border bg-card/40 p-8 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between">
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter">GymFlow Live</h1>
+        <Link href="/members"><Button className="font-bold uppercase text-[10px] tracking-widest h-10 px-6">Nuevo Socio</Button></Link>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Socios Activos" value={stats.activeMembers} sub="Personas" icon={Users} color="#3b82f6" />
-        <MetricCard label="Caja del Mes" value={`$${new Intl.NumberFormat("es-AR").format(stats.monthlyRevenue)}`} sub="Cobrado" icon={TrendingUp} color="#10b981" />
-        <MetricCard label="Caja de Hoy" value={`$${new Intl.NumberFormat("es-AR").format(stats.dailyRevenue)}`} sub="Hoy" icon={Banknote} color="#6366f1" />
-        <MetricCard label="Nuevos" value={stats.newMembers} sub="Este mes" icon={Plus} color="#f59e0b" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Caja Mes" value={`$${new Intl.NumberFormat("es-AR").format(stats.monthlyRevenue)}`} color="#10b981" />
+        <MetricCard label="Socios Activos" value={stats.activeMembers} color="#3b82f6" />
+        <MetricCard label="Caja Hoy" value={`$${new Intl.NumberFormat("es-AR").format(stats.dailyRevenue)}`} color="#6366f1" />
+        <MetricCard label="Nuevos" value={stats.newMembers} color="#f59e0b" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.5fr_0.5fr]">
-        <div className="rounded-2xl border bg-card/40 p-8 backdrop-blur shadow-sm">
-          <div className="flex items-center justify-between mb-10">
-            <h2 className="text-xl font-black uppercase italic">Flujo de Caja Real</h2>
-            <div className="bg-primary text-white px-4 py-1 rounded-xl shadow-lg">
-              <span className="text-lg font-black">${new Intl.NumberFormat("es-AR", { notation: "compact" }).format(stats.rawAmountsByMonth.reduce((a,b)=>a+b,0))}</span>
+      <div className="rounded-xl border bg-card/40 p-6 backdrop-blur shadow-sm">
+        <h2 className="text-sm font-black uppercase italic mb-6">Ingresos Anuales Real</h2>
+        <div className="flex h-48 items-end gap-2">
+          {stats.revenueByMonth.map((h, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <motion.div initial={{height:0}} animate={{height:`${h}%`}} className={cn("w-full rounded-t-sm bg-primary/30", i === new Date().getMonth() && "bg-primary shadow-lg")} />
+              <span className="text-[8px] font-bold text-muted-foreground uppercase">{"EFMAMJJASOND"[i]}</span>
             </div>
-          </div>
-          <div className="flex h-64 items-end gap-3 px-4">
-            {stats.revenueByMonth.map((h, i) => (
-              <div key={i} className="group relative flex-1 flex flex-col items-center gap-2">
-                <div className={cn("absolute -top-10 opacity-0 group-hover:opacity-100 transition-all bg-foreground text-background text-[10px] font-black px-2 py-1 rounded", i === currentMonth && "opacity-100 -top-12")}>
-                  ${new Intl.NumberFormat("es-AR", {notation:"compact"}).format(stats.rawAmountsByMonth[i])}
-                </div>
-                <motion.div initial={{height:0}} animate={{height:`${h}%`}} className={cn("w-full rounded-t-lg transition-all", i === currentMonth ? "bg-primary shadow-[0_0_20px_rgba(var(--primary),0.4)]" : "bg-primary/20 group-hover:bg-primary/40")} />
-                <span className={cn("text-[10px] font-black uppercase", i === currentMonth ? "text-primary" : "text-muted-foreground")}>{["E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"][i]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border bg-card/40 p-8 backdrop-blur shadow-sm flex flex-col border-r-4 border-r-accent/30">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-black uppercase italic text-accent">AI Advisor</h2>
-            <Sparkles className="h-6 w-6 text-accent animate-pulse" />
-          </div>
-          <div className="space-y-4 flex-1">
-            {stats.aiInsights.map((insight, i) => (
-              <div key={i} className="flex gap-4 p-4 rounded-xl bg-muted/20 border border-border/50 text-[10px] font-bold leading-snug uppercase">
-                <div className="h-2 w-2 rounded-full bg-accent mt-1.5 shrink-0" />
-                <p>{insight}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border bg-card/40 p-8 backdrop-blur shadow-sm">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-warning mb-6 italic">Próximos Cobros</h2>
-          <div className="space-y-3">
-            {stats.upcomingExpirations.length === 0 ? <p className="text-[10px] italic py-5">Sin vencimientos.</p> : stats.upcomingExpirations.map((exp, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/10 border border-border/40">
-                <p className="text-xs font-black uppercase truncate max-w-[100px]">{exp.members?.full_name}</p>
-                <Badge tone="warning" className="text-[8px] h-4">{new Date(exp.next_due_date).toLocaleDateString()}</Badge>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border bg-card/40 p-8 backdrop-blur shadow-sm">
-          <h2 className="text-[10px] font-black uppercase tracking-widest mb-6 italic text-accent">Asistencia Hoy</h2>
-           <div className="h-32 flex items-end gap-1.5 px-2">
-             {attendanceBars.map((h, i) => (
-               <div key={i} className="flex-1 bg-accent/30 rounded-t-sm" style={{ height: `${h}%` }} />
-             ))}
-           </div>
-           <p className="mt-4 text-[9px] font-black text-muted-foreground text-center uppercase tracking-widest">Flujo de hoy</p>
-        </div>
-        <div className="rounded-2xl border bg-card/40 p-8 backdrop-blur shadow-sm">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-primary mb-6 italic">Cumpleaños</h2>
-          <div className="space-y-3">
-            {stats.upcomingBirthdays.length === 0 ? <p className="text-[10px] italic py-5">Nadie hoy.</p> : stats.upcomingBirthdays.map((m, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/20">
-                <span className="text-xs font-black uppercase truncate">{m.full_name}</span>
-                <Badge tone="success">¡HOY!</Badge>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function MetricCard({ label, value, sub, icon: Icon, color }: any) {
+function MetricCard({ label, value, color }: any) {
   return (
-    <div className="rounded-2xl border bg-card/40 p-6 backdrop-blur shadow-sm border-l-4" style={{ borderLeftColor: color }}>
-      <div className="flex items-center justify-between text-muted-foreground mb-4">
-        <p className="text-[9px] font-black uppercase tracking-widest">{label}</p>
-        <Icon className="h-4 w-4 opacity-40" />
-      </div>
-      <p className="text-2xl font-black text-foreground">{value}</p>
-      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{sub}</p>
+    <div className="rounded-xl border bg-card/40 p-4 border-l-4 shadow-sm" style={{ borderLeftColor: color }}>
+      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-xl font-black mt-1">{value}</p>
     </div>
   );
 }
-
-function cn(...classes: any[]) { return classes.filter(Boolean).join(" "); }
