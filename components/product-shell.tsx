@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity, BarChart3, Bell, Boxes, CalendarClock, CreditCard, Dumbbell,
-  LayoutDashboard, Menu, Moon, QrCode, Search, Settings, Sparkles, Sun,
+  LayoutDashboard, Menu as MenuIcon, Moon, QrCode, Search, Settings, Sparkles, Sun,
   Users, X, LogOut, User as UserIcon, Shield
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -14,20 +14,20 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
-  { label: "Coliseo", href: "/", icon: LayoutDashboard },
-  { label: "Gladiadores", href: "/members", icon: Users },
+  { label: "Menú", href: "/", icon: LayoutDashboard },
+  { label: "Miembros", href: "/members", icon: Users },
   { label: "Rangos", href: "/plans", icon: CalendarClock },
   { label: "Tributos", href: "/payments", icon: CreditCard },
   { label: "Acceso QR", href: "/access", icon: QrCode },
   { label: "Entrenamiento", href: "/routines", icon: Dumbbell },
   { label: "Inventario", href: "/inventory", icon: Boxes },
-  { label: "Cronicas", href: "/reports", icon: BarChart3 },
+  { label: "Crónicas", href: "/reports", icon: BarChart3 },
   { label: "Ajustes", href: "/settings", icon: Settings }
 ];
 
 export function ProductShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [dark, setDark] = useState(true); // Default oscuro para SECUTOR
+  const [dark, setDark] = useState(true);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
@@ -51,7 +51,7 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
 
       <header className="sticky top-0 z-30 border-b bg-background/74 backdrop-blur-2xl lg:ml-72">
         <div className="flex h-[72px] items-center gap-3 px-8">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}><Menu className="h-5 w-5" /></Button>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}><MenuIcon className="h-5 w-5" /></Button>
           <div className="relative hidden flex-1 md:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input className="h-10 w-full max-w-xl rounded-xl border bg-card/80 pl-10 pr-4 text-sm outline-none border-primary/20" placeholder="Buscar en SECUTOR..." />

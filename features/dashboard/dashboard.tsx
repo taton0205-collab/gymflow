@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
-  Plus, Sparkles, Loader2, TrendingUp, Users, Banknote, Activity, Shield, Swords, AlertCircle, CalendarDays, Cake
+  Plus, Sparkles, Loader2, TrendingUp, Users, Banknote, Activity, Shield, Swords, AlertCircle, CalendarDays, Cake, Boxes
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,6 @@ export function Dashboard() {
       const maxRevenue = Math.max(...rawMonthlyData, 1);
       const normalizedRevenue = rawMonthlyData.map(val => (val / maxRevenue) * 100);
 
-      // Vencimientos y Cumples
       const { data: expirations } = await supabase.from("payments").select("next_due_date, members(full_name)").gte("next_due_date", now.toISOString()).order("next_due_date", { ascending: true }).limit(3);
       const { data: bdaysMembers } = await supabase.from("members").select("full_name, birth_date").not("birth_date", "is", null);
       const todayBdays = bdaysMembers?.filter(m => {
@@ -50,12 +49,11 @@ export function Dashboard() {
         return b.getDate() === now.getDate() && b.getMonth() === now.getMonth();
       }) || [];
 
-      // AI LOGIC
       const insights = [];
       if (mRevenue > 0) insights.push(`La facturación del mes es de $${new Intl.NumberFormat("es-AR").format(mRevenue)}.`);
       if (todayBdays.length > 0) insights.push(`¡Hoy es el cumple de ${todayBdays[0].full_name}!`);
       if (expirations && expirations.length > 0) insights.push(`Tienes ${expirations.length} cuotas por vencer pronto.`);
-      if (activeCount && activeCount > 10) insights.push("El coliseo mantiene una ocupación sólida.");
+      if (activeCount && activeCount > 10) insights.push("El flujo de miembros mantiene una ocupación sólida.");
 
       setStats({
         activeMembers: activeCount || 0,
@@ -87,14 +85,28 @@ export function Dashboard() {
           <h1 className="text-6xl font-black tracking-tighter text-foreground uppercase italic leading-none">SECUTOR<br/><span className="text-primary">ARENA</span></h1>
           <p className="text-muted-foreground font-bold uppercase text-sm tracking-widest opacity-60 italic">Resistencia • Disciplina • Victoria</p>
         </div>
-        <Link href="/members"><Button className="h-16 px-10 font-black uppercase italic tracking-widest text-lg shadow-xl shadow-primary/10 transition-all hover:scale-105 active:scale-95">NUEVO GLADIADOR</Button></Link>
+        <div className="flex flex-wrap gap-3 relative z-10">
+          <Link href="/reports">
+            <Button variant="secondary" className="h-16 px-8 font-black uppercase italic tracking-widest text-sm border-2">
+              <TrendingUp className="mr-2 h-5 w-5" /> Métricas
+            </Button>
+          </Link>
+          <Link href="/inventory">
+            <Button variant="secondary" className="h-16 px-8 font-black uppercase italic tracking-widest text-sm border-2">
+              <Boxes className="mr-2 h-5 w-5" /> Inventario
+            </Button>
+          </Link>
+          <Link href="/members">
+            <Button className="h-16 px-10 font-black uppercase italic tracking-widest text-lg shadow-xl shadow-primary/10 transition-all hover:scale-105 active:scale-95">NUEVO MIEMBRO</Button>
+          </Link>
+        </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_0.5fr]">
         <div className="space-y-6">
           {/* KPIs */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <KPICard label="Gladiadores en Activo" value={stats.activeMembers} sub="Personas" icon={Users} />
+            <KPICard label="Miembros en Activo" value={stats.activeMembers} sub="Personas" icon={Users} />
             <KPICard label="Caja Total del Mes" value={`$${new Intl.NumberFormat("es-AR").format(stats.monthlyRevenue)}`} sub="Cobrado" icon={Banknote} />
           </div>
 
@@ -115,7 +127,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* REGRESO DEL AI ADVISOR - COLOR ORO */}
+        {/* AI ADVISOR */}
         <div className="rounded-[2rem] border bg-card/40 p-8 shadow-sm flex flex-col border-r-4 border-r-primary/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5"><Sparkles size={100} /></div>
           <div className="flex items-center justify-between mb-8 relative">
