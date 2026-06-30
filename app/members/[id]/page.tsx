@@ -1,8 +1,13 @@
 import { ProductShell } from "@/components/product-shell";
 import { MemberProfile } from "@/features/members/member-profile";
 
-export default async function MemberDetailPage({ params }: { params: { id: string } }) {
-  const { id } = await params;
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function MemberDetailPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
 
   return (
     <ProductShell>
