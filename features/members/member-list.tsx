@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2, Copy, Check, Eye } from "lucide-react";
+import { Loader2, Trash2, Copy, Check, Eye, PencilLine, UserCircle2 } from "lucide-react";
 import Link from "next/link";
+import { EditMemberForm } from "./edit-member-form";
 
 export function MemberList() {
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editingMember, setEditingMember] = useState<any | null>(null);
 
   const fetchMembers = async () => {
     const supabase = createClient();
@@ -20,7 +22,7 @@ export function MemberList() {
   };
 
   const deleteMember = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar a ${name}?`)) return;
+    if (!confirm(`¿Eliminar permanentemente a ${name}?`)) return;
     setDeletingId(id);
     const supabase = createClient();
     try {
@@ -39,48 +41,67 @@ export function MemberList() {
     fetchMembers();
   }, []);
 
-  if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex justify-center p-32"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+
+  if (members.length === 0) {
+    return (
+      <div className="text-center py-32 border-4 border-dashed rounded-[3rem] opacity-30 flex flex-col items-center">
+        <UserCircle2 className="h-16 w-16 mb-4" />
+        <p className="text-sm font-black uppercase tracking-[0.3em]">Sin Socios Activos</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-xl border bg-card/50 overflow-hidden shadow-sm">
+    <div className="rounded-[2.5rem] border bg-card/50 overflow-hidden shadow-sm">
       <table className="w-full text-sm text-left">
-        <thead className="bg-muted/50 text-muted-foreground border-b text-[9px] font-black uppercase tracking-widest">
+        <thead className="bg-muted/50 text-muted-foreground border-b text-[9px] font-black uppercase tracking-[0.2em]">
           <tr>
-            <th className="px-6 py-4 text-foreground">Socio</th>
-            <th className="px-6 py-4 text-foreground">Token QR</th>
-            <th className="px-6 py-4 text-foreground">Plan</th>
-            <th className="px-6 py-4 text-foreground text-right">Acciones</th>
+            <th className="px-8 py-6 text-foreground">Socio / Identidad</th>
+            <th className="px-8 py-6 text-foreground">Token Acceso</th>
+            <th className="px-8 py-6 text-foreground">Membresía</th>
+            <th className="px-8 py-6 text-foreground text-right">Gestión</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {members.map((member) => (
-            <tr key={member.id} className="group hover:bg-muted/30">
-              <td className="px-6 py-4 font-bold">{member.full_name}</td>
-              <td className="px-6 py-4">
+            <tr key={member.id} className="group hover:bg-muted/30 transition-all">
+              <td className="px-8 py-6">
+                <p className="font-black text-base uppercase italic tracking-tight">{member.full_name}</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase mt-0.5 tracking-tighter">DNI: {member.dni || "S/D"}</p>
+              </td>
+              <td className="px-8 py-6">
                 <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded text-[10px] font-mono">{member.qr_token.substring(0, 8)}</code>
-                  <button onClick={() => copyToken(member.qr_token, member.id)} className="text-primary">
-                    {copiedId === member.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  <code className="bg-background border px-3 py-1 rounded-lg text-[10px] font-mono shadow-inner">{member.qr_token.substring(0, 8)}</code>
+                  <button onClick={() => copyToken(member.qr_token, member.id)} className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all">
+                    {copiedId === member.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </button>
                 </div>
               </td>
-              <td className="px-6 py-4">
-                <Badge tone="info" className="text-[9px] font-black uppercase">{member.plans?.name || "-"}</Badge>
+              <td className="px-8 py-6">
+                <Badge tone="info" className="text-[10px] font-black uppercase tracking-widest px-3 py-1">{member.plans?.name || "Sin Plan"}</Badge>
               </td>
-              <td className="px-6 py-4 text-right">
-                <div className="flex items-center justify-end gap-2">
+              <td className="px-8 py-6 text-right">
+                <div className="flex items-center justify-end gap-3">
                   <Link href={`/members/${member.id}` as any}>
-                    <button className="p-2 hover:bg-primary/10 rounded-lg text-primary"><Eye className="h-4 w-4" /></button>
+                    <button className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center text-primary shadow-sm hover:shadow-lg transition-all" title="Ver Historial"><Eye className="h-5 w-5" /></button>
                   </Link>
-                  <button onClick={() => deleteMember(member.id, member.full_name)} className="p-2 hover:text-red-500 rounded-lg text-muted-foreground">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <button onClick={() => setEditingMember(member)} className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center text-accent shadow-sm hover:shadow-lg transition-all" title="Editar Socio"><PencilLine className="h-5 w-5" /></button>
+                  <button onClick={() => deleteMember(member.id, member.full_name)} className="h-10 w-10 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-center text-red-500 shadow-sm hover:bg-red-500 hover:text-white transition-all" title="Borrar Socio"><Trash2 className="h-5 w-5" /></button>
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {editingMember && (
+        <EditMemberForm
+          member={editingMember}
+          onUpdate={fetchMembers}
+          onClose={() => setEditingMember(null)}
+        />
+      )}
     </div>
   );
 }
