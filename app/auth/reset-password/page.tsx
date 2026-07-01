@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Shield, Lock, CheckCircle2 } from "lucide-react";
+import { Loader2, Lock, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function ResetPasswordPage() {
@@ -35,7 +35,7 @@ export default function ResetPasswordPage() {
         router.push("/login");
       }, 3000);
     } catch (error: any) {
-      alert("Error al actualizar contraseña: " + error.message);
+      alert("Error: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -51,11 +51,11 @@ export default function ResetPasswordPage() {
         </div>
 
         {success ? (
-          <motion_div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-10 space-y-4">
+          <div className="text-center py-10 space-y-4 animate-in fade-in">
             <CheckCircle2 className="h-20 w-20 text-green-500 mx-auto" />
             <p className="text-xl font-black text-white uppercase italic">¡Contraseña actualizada!</p>
             <p className="text-sm text-muted-foreground">Redirigiendo al login...</p>
-          </motion_div>
+          </div>
         ) : (
           <form onSubmit={handleUpdatePassword} className="space-y-6">
             <div className="space-y-4">
@@ -68,7 +68,7 @@ export default function ResetPasswordPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-14 w-full rounded-2xl border-2 border-white/5 bg-white/[0.03] pl-12 pr-4 font-bold outline-none focus:border-primary/50 transition-all text-foreground"
+                    className="h-14 w-full rounded-2xl border-2 border-white/5 bg-white/[0.03] pl-12 pr-4 font-bold outline-none focus:border-primary/50 transition-all text-white"
                     placeholder="••••••••"
                   />
                 </div>
@@ -82,14 +82,14 @@ export default function ResetPasswordPage() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-14 w-full rounded-2xl border-2 border-white/5 bg-white/[0.03] pl-12 pr-4 font-bold outline-none focus:border-primary/50 transition-all text-foreground"
+                    className="h-14 w-full rounded-2xl border-2 border-white/5 bg-white/[0.03] pl-12 pr-4 font-bold outline-none focus:border-primary/50 transition-all text-white"
                     placeholder="••••••••"
                   />
                 </div>
               </div>
             </div>
 
-            <Button type="submit" className="h-16 w-full text-lg font-black uppercase tracking-widest shadow-2xl skew-x-[-5deg]" disabled={loading}>
+            <Button type="submit" className="h-16 w-full text-lg font-black uppercase tracking-widest shadow-2xl" disabled={loading}>
               {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : "CAMBIAR CONTRASEÑA"}
             </Button>
           </form>
@@ -97,8 +97,4 @@ export default function ResetPasswordPage() {
       </div>
     </div>
   );
-}
-
-function motion_div({ children, ...props }: any) {
-  return <div {...props}>{children}</div>;
 }
