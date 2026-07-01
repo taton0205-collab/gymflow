@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Boxes, AlertTriangle, TrendingUp, ShoppingBag, ShoppingCart } from "lucide-react";
+import { Loader2, Boxes, AlertTriangle, TrendingUp, ShoppingBag, ShoppingCart, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function InventoryList() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sellingId, setSellingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchInventory = async () => {
     const supabase = createClient();
@@ -30,7 +31,7 @@ export function InventoryList() {
     const supabase = createClient();
 
     try {
-      // 1. Registrar la venta en la tabla de pagos (sin obligar a que sea un miembro)
+      // 1. Registrar la venta en la tabla de pagos
       const { error: paymentError } = await supabase.from("payments").insert([{
         gym_id: item.gym_id,
         amount: item.sale_price,
@@ -61,6 +62,29 @@ export function InventoryList() {
     }
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`¿Estás seguro que deseas eliminar permanentemente el producto "${name}"?`)) return;
+
+    setDeletingId(id);
+    const supabase = createClient();
+
+    try {
+      const { error } = await supabase
+        .from("inventory_items")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setItems(items.filter(item => item.id !== id));
+      alert("Producto eliminado.");
+    } catch (e: any) {
+      alert("Error al eliminar: " + e.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   useEffect(() => {
     fetchInventory();
   }, []);
@@ -87,7 +111,16 @@ export function InventoryList() {
                 <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center shadow-inner">
                   <ShoppingBag className={cn("h-7 w-7 text-muted-foreground", isLowStock && "text-red-500")} />
                 </div>
-                {isLowStock && <Badge tone="danger" className="animate-pulse font-black uppercase text-[8px]">STOCK BAJO</Badge>}
+                <div className="flex gap-2">
+                  {isLowStock && <Badge tone="danger" className="animate-pulse font-black uppercase text-[8px]">STOCK BAJO</Badge>}
+                  <button
+                    onClick={() => handleDelete(item.id, item.name)}
+                    disabled={deletingId === item.id}
+                    className="h-8 w-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    {deletingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="mt-8 space-y-1">
@@ -105,7 +138,7 @@ export function InventoryList() {
 
               <button
                 onClick={() => handleSell(item)}
-                disabled={sellingId === item.id || item.stock <= 0}
+                disabled={sellingId === item.id || item.stock <= 0 || deletingId === item.id}
                 className={cn(
                   "mt-6 h-14 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95",
                   item.stock > 0 ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground"
