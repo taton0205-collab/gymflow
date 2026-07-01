@@ -14,14 +14,13 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
 const navigation = [
-  { label: "Menú", href: "/", icon: LayoutDashboard },
+  { label: "Inicio", href: "/", icon: LayoutDashboard },
   { label: "Miembros", href: "/members", icon: Users },
-  { label: "Rangos", href: "/plans", icon: CalendarClock },
-  { label: "Tributos", href: "/payments", icon: CreditCard },
+  { label: "Planes", href: "/plans", icon: CalendarClock },
+  { label: "Pagos", href: "/payments", icon: CreditCard },
   { label: "Acceso QR", href: "/access", icon: QrCode },
-  { label: "Entrenamiento", href: "/routines", icon: Dumbbell },
   { label: "Inventario", href: "/inventory", icon: Boxes },
-  { label: "Crónicas", href: "/reports", icon: BarChart3 },
+  { label: "Reportes", href: "/reports", icon: BarChart3 },
   { label: "Ajustes", href: "/settings", icon: Settings }
 ];
 
@@ -54,7 +53,7 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}><MenuIcon className="h-5 w-5" /></Button>
           <div className="relative hidden flex-1 md:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input className="h-10 w-full max-w-xl rounded-xl border bg-card/80 pl-10 pr-4 text-sm outline-none border-primary/20" placeholder="Buscar en SECUTOR..." />
+            <input className="h-10 w-full max-w-xl rounded-xl border bg-card/80 pl-10 pr-4 text-sm outline-none border-primary/20" placeholder="Buscar por miembro, DNI o plan..." />
           </div>
           <div className="ml-auto flex items-center gap-4">
              <div className="flex items-center gap-2 bg-primary/10 px-4 py-1.5 rounded-full border border-primary/20">
@@ -85,16 +84,16 @@ function SidebarContent({ user, onLogout }: any) {
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/40 italic font-black text-xl italic">S</div>
         <div>
           <p className="text-lg font-black uppercase tracking-tighter italic leading-none">SECUTOR</p>
-          <p className="text-[9px] font-bold text-primary uppercase tracking-[0.3em] mt-1">Arena Management</p>
+          <p className="text-[9px] font-bold text-primary uppercase tracking-[0.3em] mt-1 text-muted-foreground">Admin Suite</p>
         </div>
       </div>
 
       <nav className="mt-12 space-y-1.5 flex-1">
         {navigation.map((item) => (
           <Link key={item.label} href={item.href as any} className={cn(
-            "flex h-12 w-full items-center gap-4 rounded-xl px-4 text-sm font-black uppercase tracking-tight transition-all",
+            "flex h-12 w-full items-center gap-4 rounded-xl px-4 text-sm font-bold uppercase tracking-tight transition-all",
             (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)))
-              ? "bg-primary text-white shadow-xl shadow-primary/30 rotate-[-1deg]"
+              ? "bg-primary text-primary-foreground shadow-xl shadow-primary/20"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
           )}>
             <item.icon className="h-5 w-5" /><span>{item.label}</span>
@@ -103,8 +102,8 @@ function SidebarContent({ user, onLogout }: any) {
       </nav>
 
       <div className="mt-auto pt-8 border-t border-dashed">
-        <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all text-xs font-black uppercase">
-          <LogOut className="h-4 w-4" /> Abandonar Arena
+        <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest">
+          <LogOut className="h-4 w-4" /> Cerrar Sesión
         </button>
       </div>
     </div>

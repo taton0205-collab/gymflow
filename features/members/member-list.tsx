@@ -3,117 +3,185 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2, Copy, Check, Eye, PencilLine, UserCircle2, QrCode, X, RefreshCw } from "lucide-react";
+import {
+  Loader2, Trash2, Copy, Check, Eye, PencilLine,
+  QrCode, RefreshCw, Search, Filter, FileSpreadsheet, Dumbbell
+} from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { EditMemberForm } from "./edit-member-form";
 import { RenewPlanForm } from "./renew-plan-form";
 
 export function MemberList() {
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [editingMember, setEditingMember] = useState<any | null>(null);
   const [renewingMember, setRenewingMember] = useState<any | null>(null);
   const [showQR, setShowQR] = useState<any | null>(null);
 
   const fetchMembers = async () => {
     const supabase = createClient();
-    const { data, error } = await supabase.from("members").select("*, plans(name)").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("members")
+      .select("*, plans(name), attendance_logs(checked_in_at), payments(next_due_date, status)")
+      .order("created_at", { ascending: false });
+
     if (!error) setMembers(data || []);
     setLoading(false);
   };
 
-  const deleteMember = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar permanentemente a ${name}?`)) return;
-    setDeletingId(id);
-    const supabase = createClient();
-    try {
-      await supabase.from("members").delete().eq("id", id);
-      setMembers(members.filter(m => m.id !== id));
-    } catch (e) { console.error(e); } finally { setDeletingId(null); }
+  const getPaymentStatus = (member: any) => {
+    const lastPayment = member.payments?.sort((a: any, b: any) =>
+      new Date(b.next_due_date).getTime() - new Date(a.next_due_date).getTime()
+    )[0];
+
+    if (!lastPayment) return { label: "Inactivo", color: "bg-gray-500/10 text-gray-400" };
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const dueDate = new Date(lastPayment.next_due_date);
+    const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (dueDate < today) return { label: "Vencido", color: "bg-red-500/10 text-red-500" };
+    if (diffDays <= 5) return { label: "Próx. Vencer", color: "bg-yellow-500/10 text-yellow-500" };
+    return { label: "Al día", color: "bg-green-500/10 text-green-500" };
   };
 
-  const copyToken = (token: string, id: string) => {
-    navigator.clipboard.writeText(token);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+  useEffect(() => { fetchMembers(); }, []);
 
-  useEffect(() => {
-    fetchMembers();
-  }, []);
+  const filteredMembers = members.filter(m => {
+    const matchesSearch = m.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || m.dni?.includes(searchTerm);
+    const status = getPaymentStatus(m).label;
+    const matchesStatus = filterStatus === 'all' ||
+      (filterStatus === 'paid' && status === 'Al día') ||
+      (filterStatus === 'debt' && status === 'Vencido') ||
+      (filterStatus === 'warning' && status === 'Próx. Vencer') ||
+      (filterStatus === 'inactive' && status === 'Inactivo');
+
+    return matchesSearch && matchesStatus;
+  });
 
   if (loading) return <div className="flex justify-center p-32"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
 
-  if (members.length === 0) {
-    return (
-      <div className="text-center py-32 border-4 border-dashed rounded-[3rem] opacity-30 flex flex-col items-center">
-        <UserCircle2 className="h-16 w-16 mb-4" />
-        <p className="text-sm font-black uppercase tracking-[0.3em]">Sin Miembros Activos</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="rounded-[2.5rem] border bg-card/50 overflow-hidden shadow-sm">
-      <table className="w-full text-sm text-left">
-        <thead className="bg-muted/50 text-muted-foreground border-b text-[9px] font-black uppercase tracking-[0.2em]">
-          <tr>
-            <th className="px-8 py-6 text-foreground">Socio / Identidad</th>
-            <th className="px-8 py-6 text-foreground">Pase de Acceso</th>
-            <th className="px-8 py-6 text-foreground">Rango</th>
-            <th className="px-8 py-6 text-foreground text-right">Gestión</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {members.map((member) => (
-            <tr key={member.id} className="group hover:bg-muted/30 transition-all">
-              <td className="px-8 py-6">
-                <p className="font-black text-base uppercase italic tracking-tight">{member.full_name}</p>
-                <Badge tone={member.status === 'active' ? 'success' : 'warning'} className="text-[7px] font-black uppercase h-4 px-1.5 mt-1">{member.status}</Badge>
-              </td>
-              <td className="px-8 py-6">
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setShowQR(member)} className="h-10 px-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-2 text-primary hover:bg-primary hover:text-white transition-all shadow-sm">
-                    <QrCode className="h-4 w-4" /><span className="text-[9px] font-black uppercase tracking-widest">QR</span>
-                  </button>
-                  <button onClick={() => copyToken(member.qr_token, member.id)} className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground">
-                    {copiedId === member.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-              </td>
-              <td className="px-8 py-6">
-                <Badge tone="info" className="text-[10px] font-black uppercase tracking-widest px-3 py-1">{member.plans?.name || "Sin Plan"}</Badge>
-              </td>
-              <td className="px-8 py-6 text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <button onClick={() => setRenewingMember(member)} className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-all" title="Renovar Plan"><RefreshCw className="h-4 w-4" /></button>
-                  <Link href={`/members/${member.id}` as any}><button className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center text-muted-foreground shadow-sm hover:text-primary transition-all" title="Ficha"><Eye className="h-4 w-4" /></button></Link>
-                  <button onClick={() => setEditingMember(member)} className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center text-accent shadow-sm hover:text-accent transition-all" title="Editar"><PencilLine className="h-4 w-4" /></button>
-                  <button onClick={() => deleteMember(member.id, member.full_name)} className="h-10 w-10 bg-red-500/5 border border-red-500/10 rounded-xl flex items-center justify-center text-red-500 shadow-sm hover:bg-red-500 hover:text-white transition-all" title="Borrar"><Trash2 className="h-4 w-4" /></button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {showQR && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-           <div className="w-full max-w-sm rounded-[3rem] bg-card border-4 border-primary/30 p-10 text-center space-y-8 shadow-2xl relative">
-              <button onClick={() => setShowQR(null)} className="absolute top-6 right-6 h-10 w-10 rounded-full bg-muted flex items-center justify-center"><X className="h-5 w-5" /></button>
-              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-foreground">{showQR.full_name}</h3>
-              <div className="bg-white p-6 rounded-[2rem] inline-block shadow-inner border-8 border-primary/10">
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${showQR.qr_token}`} alt="QR" className="h-40 w-48" />
-              </div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-6 italic">Presenta este código para validar tu ingreso al coliseo.</p>
-           </div>
+    <div className="space-y-6">
+      {/* Filtros y Buscador */}
+      <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-card/40 p-6 rounded-[2rem] border border-white/5 backdrop-blur-md">
+        <div className="relative w-full lg:w-96">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-12 w-full rounded-2xl bg-background border border-white/5 pl-12 pr-4 font-bold outline-none focus:border-primary/50 transition-all"
+            placeholder="Buscar miembro o DNI..."
+          />
         </div>
-      )}
+
+        <div className="flex flex-wrap gap-2 justify-center">
+          <FilterButton active={filterStatus === 'all'} onClick={() => setFilterStatus('all')} label="Todos" />
+          <FilterButton active={filterStatus === 'paid'} onClick={() => setFilterStatus('paid')} label="Al día" color="text-green-500" />
+          <FilterButton active={filterStatus === 'debt'} onClick={() => setFilterStatus('debt')} label="Con deuda" color="text-red-500" />
+          <FilterButton active={filterStatus === 'warning'} onClick={() => setFilterStatus('warning')} label="Próx. Vencer" color="text-yellow-500" />
+        </div>
+
+        <Button variant="outline" className="h-12 px-6 rounded-2xl border-white/10 font-black uppercase text-[10px] tracking-widest gap-2">
+          <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+        </Button>
+      </div>
+
+      {/* Tabla de Miembros Pro */}
+      <div className="rounded-[2.5rem] border bg-card/30 overflow-hidden shadow-2xl backdrop-blur-md">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-white/[0.02] text-muted-foreground border-b border-white/5 text-[10px] font-black uppercase tracking-widest">
+            <tr>
+              <th className="px-8 py-6">Miembro / Identidad</th>
+              <th className="px-8 py-6">Plan Contratado</th>
+              <th className="px-8 py-6 text-center">Estado de Pago</th>
+              <th className="px-8 py-6 text-center">Vencimiento</th>
+              <th className="px-8 py-6 text-center">Último Acceso</th>
+              <th className="px-8 py-6 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {filteredMembers.map((member) => {
+              const status = getPaymentStatus(member);
+              const lastAccess = member.attendance_logs?.sort((a:any, b:any) => new Date(b.checked_in_at).getTime() - new Date(a.checked_in_at).getTime())[0];
+              const lastPay = member.payments?.sort((a:any, b:any) => new Date(b.next_due_date).getTime() - new Date(a.next_due_date).getTime())[0];
+
+              return (
+                <tr key={member.id} className="group hover:bg-white/[0.03] transition-all">
+                  <td className="px-8 py-6">
+                    <p className="font-black text-base uppercase italic tracking-tight text-foreground">{member.full_name}</p>
+                    <div className="flex gap-3 mt-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      <span>DNI: {member.dni || "S/D"}</span>
+                      {member.phone && <span className="opacity-40">• {member.phone}</span>}
+                    </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <Badge tone="info" className="text-[10px] font-black uppercase px-3 py-1 bg-primary/10 text-primary border-none">
+                      {member.plans?.name || "Sin Plan"}
+                    </Badge>
+                  </td>
+                  <td className="px-8 py-6 text-center">
+                    <span className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest", status.color)}>
+                      {status.label}
+                    </span>
+                  </td>
+                  <td className="px-8 py-6 text-center font-bold text-foreground/80">
+                    {lastPay?.next_due_date ? new Date(lastPay.next_due_date).toLocaleDateString() : "N/A"}
+                  </td>
+                  <td className="px-8 py-6 text-center text-muted-foreground font-medium">
+                    {lastAccess ? new Date(lastAccess.checked_in_at).toLocaleDateString() : "Nunca"}
+                  </td>
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                       <ActionButton icon={Eye} title="Perfil" href={`/members/${member.id}`} />
+                       <ActionButton icon={PencilLine} title="Editar" onClick={() => setEditingMember(member)} />
+                       <ActionButton icon={RefreshCw} title="Renovar/Pagar" color="text-green-500" onClick={() => setRenewingMember(member)} />
+                       <ActionButton icon={QrCode} title="QR" onClick={() => setShowQR(member)} />
+                       <ActionButton icon={Dumbbell} title="Rutina" color="text-primary" />
+                       <ActionButton icon={Trash2} title="Eliminar" color="text-red-500" onClick={() => { if(confirm(`¿Borrar a ${member.full_name}?`)) {} }} />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {editingMember && <EditMemberForm member={editingMember} onUpdate={fetchMembers} onClose={() => setEditingMember(null)} />}
       {renewingMember && <RenewPlanForm member={renewingMember} onUpdate={fetchMembers} onClose={() => setRenewingMember(null)} />}
     </div>
   );
+}
+
+function FilterButton({ active, onClick, label, color }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+        active ? "bg-primary text-primary-foreground shadow-lg" : cn("bg-white/5 text-muted-foreground hover:bg-white/10", color)
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ActionButton({ icon: Icon, title, onClick, href, color }: any) {
+  const content = (
+    <button
+      onClick={onClick}
+      className={cn("h-10 w-10 bg-background border border-white/5 rounded-xl flex items-center justify-center shadow-sm hover:shadow-xl hover:scale-110 transition-all", color)}
+      title={title}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+  if (href) return <Link href={href as any}>{content}</Link>;
+  return content;
 }

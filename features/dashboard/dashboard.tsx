@@ -5,8 +5,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Plus, Sparkles, Loader2, TrendingUp, Users, Banknote, Activity, Shield,
-  AlertCircle, CalendarDays, Cake, Boxes, QrCode, CreditCard, ArrowUpRight,
-  CheckCircle2, Clock, Filter, ShoppingCart
+  AlertCircle, CalendarDays, Boxes, QrCode, CreditCard, Wallet,
+  Zap, ArrowRight, UserPlus, FileText
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,139 +18,158 @@ export function Dashboard() {
   const [stats, setStats] = useState({
     totalMembers: 0,
     activeMembers: 0,
-    revenue: 0,
-    dailyRevenue: 0,
-    todayAttendance: 0,
+    inactiveMembers: 0,
+    revenueMonth: 0,
+    revenueToday: 0,
+    revenueWeek: 0,
+    paidCuotas: 0,
     pendingCuotas: 0,
-    popularPlans: [] as any[],
-    upcomingExpirations: [] as any[],
-    expiredPayments: [] as any[],
-    aiInsights: [] as string[]
+    todayAttendance: 0,
+    lowStockCount: 0,
   });
 
   const fetchData = async () => {
     const supabase = createClient();
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).toISOString();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     try {
-      // Miembros
       const { data: members } = await supabase.from("members").select("status");
       const total = members?.length || 0;
       const active = members?.filter(m => m.status === 'active').length || 0;
 
-      // Pagos
-      const { data: payments } = await supabase.from("payments").select("amount, paid_at, status, next_due_date, members(full_name)");
+      const { data: payments } = await supabase.from("payments").select("amount, paid_at, status");
       const monthlyRev = payments?.filter(p => p.paid_at >= startOfMonth).reduce((acc, p) => acc + Number(p.amount), 0) || 0;
       const dailyRev = payments?.filter(p => p.paid_at >= startOfToday).reduce((acc, p) => acc + Number(p.amount), 0) || 0;
-      const pendingCount = payments?.filter(p => p.status !== 'paid').length || 0;
+      const weeklyRev = payments?.filter(p => p.paid_at >= startOfWeek).reduce((acc, p) => acc + Number(p.amount), 0) || 0;
 
-      // Asistencia
+      const paidCount = payments?.filter(p => p.status === 'paid').length || 0;
+      const pendingCount = (payments?.length || 0) - paidCount;
+
       const { count: attendanceToday } = await supabase.from("attendance_logs").select("*", { count: 'exact', head: true }).gte("checked_in_at", startOfToday);
-
-      // Vencimientos y Expirados
-      const todayISO = new Date().toISOString();
-      const upcoming = payments?.filter(p => p.next_due_date >= todayISO).sort((a,b) => a.next_due_date.localeCompare(b.next_due_date)).slice(0, 5) || [];
-      const expired = payments?.filter(p => p.next_due_date < todayISO && p.status !== 'paid').slice(0, 5) || [];
-
-      // AI Insights
-      const insights = [];
-      if (attendanceToday && attendanceToday > 0) insights.push(`Hoy ingresaron ${attendanceToday} miembros.`);
-      if (pendingCount > 0) insights.push(`Hay ${pendingCount} cobros pendientes.`);
-      if (expired.length > 0) insights.push(`Atención: Tienes ${expired.length} tributos vencidos.`);
+      const { count: stockLow } = await supabase.from("inventory_items").select("*", { count: 'exact', head: true }).lte("stock", 5);
 
       setStats({
         totalMembers: total,
         activeMembers: active,
-        revenue: monthlyRev,
-        dailyRevenue: dailyRev,
-        todayAttendance: attendanceToday || 0,
+        inactiveMembers: total - active,
+        revenueMonth: monthlyRev,
+        revenueToday: dailyRev,
+        revenueWeek: weeklyRev,
+        paidCuotas: paidCount,
         pendingCuotas: pendingCount,
-        popularPlans: [],
-        upcomingExpirations: upcoming,
-        expiredPayments: expired,
-        aiInsights: insights.length > 0 ? insights : ["Analizando datos..."]
+        todayAttendance: attendanceToday || 0,
+        lowStockCount: stockLow || 0,
       });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchData();
-    const supabase = createClient();
-    const channel = supabase.channel("db-sync").on("postgres_changes", { event: "*", schema: "public" }, () => fetchData()).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  if (loading) return <div className="flex h-[80vh] items-center justify-center text-primary animate-pulse font-black uppercase tracking-widest text-xs">Sincronizando Secutor...</div>;
+  if (loading) return <div className="flex h-[80vh] items-center justify-center text-primary font-black uppercase tracking-[0.5em] animate-pulse">Sincronizando SECUTOR...</div>;
 
   return (
-    <div className="space-y-8 pb-20">
-      {/* Header Minimalista */}
-      <section className="rounded-[3rem] border border-primary/20 bg-card/40 p-10 shadow-2xl backdrop-blur-md border-b-[8px] border-b-primary/30">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <Badge className="bg-primary/10 text-primary border-primary/20 font-black mb-4">DASHBOARD V3.0</Badge>
-            <h1 className="text-6xl font-black uppercase italic tracking-tighter">SECUTOR<br/><span className="text-primary">ARENA</span></h1>
+    <div className="space-y-10 pb-20">
+      {/* HEADER & ACCESOS RÁPIDOS */}
+      <section className="relative rounded-[3.5rem] border border-white/5 bg-card/30 p-12 shadow-2xl backdrop-blur-md border-b-8 border-b-primary/30">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-12">
+          <div className="space-y-4">
+            <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-4 py-1 uppercase text-[9px] tracking-widest">Panel de Control v4.0</Badge>
+            <h1 className="text-7xl font-black uppercase italic tracking-tighter leading-none text-foreground">SECUTOR<br/><span className="text-primary underline decoration-8 underline-offset-4">ARENA</span></h1>
+            <p className="text-muted-foreground font-bold uppercase text-sm tracking-widest italic opacity-60">Consola Administrativa de Miembros</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/members"><Button className="h-14 px-8 font-black uppercase text-xs italic bg-primary shadow-lg shadow-primary/20">NUEVO SOCIO</Button></Link>
-            <Link href="/access"><Button variant="outline" className="h-14 px-8 font-black uppercase text-xs italic border-2">ABRIR ESCÁNER</Button></Link>
+
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap lg:justify-end">
+             <QuickAction href="/members" icon={UserPlus} label="Registrar Miembro" primary />
+             <QuickAction href="/payments" icon={Wallet} label="Registrar Pago" />
+             <QuickAction href="/access" icon={QrCode} label="Abrir Lector" />
+             <QuickAction href="/plans" icon={CalendarDays} label="Crear Plan" />
+             <QuickAction href="/inventory" icon={Boxes} label="Nuevo Producto" />
           </div>
         </div>
       </section>
 
-      {/* KPI Reales */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard label="Activos" value={stats.activeMembers} sub={`Total: ${stats.totalMembers}`} icon={Users} color="hsl(var(--primary))" />
-        <KPICard label="Caja Mes" value={`$${new Intl.NumberFormat("es-AR").format(stats.revenue)}`} sub={`Hoy: $${new Intl.NumberFormat("es-AR").format(stats.dailyRevenue)}`} icon={Banknote} color="#10b981" />
-        <KPICard label="Asistencia" value={stats.todayAttendance} sub="Personas hoy" icon={Activity} color="#6366f1" />
-        <KPICard label="Pendientes" value={stats.pendingCuotas} sub="Tributos a cobrar" icon={AlertCircle} color="#f59e0b" />
+      {/* MÉTRICAS PRINCIPALES */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <DashboardCard label="Ingresos Hoy" value={`$${new Intl.NumberFormat("es-AR").format(stats.revenueToday)}`} sub="Caja diaria" icon={Zap} color="text-yellow-500" href="/payments" />
+        <DashboardCard label="Ingresos Mes" value={`$${new Intl.NumberFormat("es-AR").format(stats.revenueMonth)}`} sub="Acumulado" icon={TrendingUp} color="text-green-500" href="/reports" />
+        <DashboardCard label="Miembros Activos" value={stats.activeMembers} sub={`Inactivos: ${stats.inactiveMembers}`} icon={Users} color="text-blue-500" href="/members" />
+        <DashboardCard label="Pagos Pendientes" value={stats.pendingCuotas} sub="Tributos por cobrar" icon={AlertCircle} color="text-red-500" href="/payments" />
+        <DashboardCard label="Ingresos de Hoy" value={stats.todayAttendance} sub="Miembros entraron hoy" icon={Activity} color="text-primary" href="/access/history" />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* IA Advisor */}
-        <div className="rounded-[2.5rem] border border-primary/20 bg-primary/5 p-8 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-black uppercase italic text-primary tracking-tighter">AI Advisor</h2>
-            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-          </div>
-          <div className="space-y-4">
-            {stats.aiInsights.map((ins, i) => (
-              <div key={i} className="flex gap-4 p-4 rounded-2xl bg-card border border-white/5 shadow-sm">
-                <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />
-                <p className="text-[11px] font-bold uppercase italic text-foreground/80">{ins}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="grid gap-6 xl:grid-cols-[1.5fr_0.5fr]">
+         <div className="rounded-[3rem] border bg-card/40 p-10 border-t-2 border-t-primary/10 backdrop-blur-md">
+            <h2 className="text-xl font-black uppercase italic tracking-tighter mb-10 flex items-center gap-3">
+              <TrendingUp className="h-6 w-6 text-primary" /> Rendimiento de Caja
+            </h2>
+            <div className="flex h-64 items-end gap-3 px-4">
+               {[40, 60, 45, 90, 50, 75, 80, 55, 95, 40, 70, 85].map((h, i) => (
+                 <div key={i} className="flex-1 bg-primary/20 rounded-t-2xl transition-all hover:bg-primary/40 relative group">
+                   <motion.div initial={{height:0}} animate={{height: `${h}%`}} className={cn("w-full bg-primary rounded-t-2xl shadow-[0_0_20px_rgba(var(--primary),0.3)]", i === new Date().getMonth() && "animate-pulse")} />
+                 </div>
+               ))}
+            </div>
+            <div className="mt-8 flex justify-center gap-4">
+               <Badge variant="outline" className="text-[10px] font-black border-primary/20 text-muted-foreground uppercase">Filtro: Año Actual</Badge>
+            </div>
+         </div>
 
-        {/* Vencimientos */}
-        <div className="rounded-[2.5rem] border border-white/5 bg-card/40 p-8 shadow-sm">
-          <h2 className="text-xl font-black uppercase italic tracking-tighter mb-8">Vencimientos</h2>
-          <div className="space-y-3">
-            {stats.upcomingExpirations.length === 0 ? <p className="text-xs italic text-muted-foreground">Todo al día.</p> : stats.upcomingExpirations.map((exp, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-muted/10 border border-white/5">
-                <span className="text-xs font-black uppercase truncate max-w-[150px]">{exp.members?.full_name}</span>
-                <span className="text-[10px] font-bold text-primary">{new Date(exp.next_due_date).toLocaleDateString()}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+         <div className="space-y-4">
+            <AlertBox label="Stock Bajo" value={stats.lowStockCount} icon={Boxes} color="text-red-500" href="/inventory" />
+            <AlertBox label="Miembros Inactivos" value={stats.inactiveMembers} icon={Users} color="text-gray-500" href="/members" />
+            <AlertBox label="Próximos Vencimientos" value="5" icon={CalendarDays} color="text-yellow-500" href="/members" />
+         </div>
       </div>
     </div>
   );
 }
 
-function KPICard({ label, value, sub, icon: Icon, color }: any) {
+function QuickAction({ href, icon: Icon, label, primary }: any) {
   return (
-    <div className="rounded-[2.5rem] border border-white/5 bg-card/40 p-8 shadow-lg border-l-8 transition-all hover:scale-[1.02]" style={{ borderLeftColor: color }}>
-      <div className="flex items-center justify-between mb-4 text-muted-foreground">
-        <p className="text-[10px] font-black uppercase tracking-widest">{label}</p>
-        <Icon className="h-4 w-4" style={{ color }} />
+    <Link href={href}>
+      <button className={cn(
+        "h-16 px-6 rounded-2xl font-black uppercase italic tracking-widest text-[10px] transition-all active:scale-95 flex items-center gap-3 shadow-xl",
+        primary ? "bg-primary text-primary-foreground hover:scale-105" : "bg-white/5 border border-white/5 text-foreground hover:bg-white/10"
+      )}>
+        <Icon className={cn("h-4 w-4", primary ? "text-primary-foreground" : "text-primary")} /> {label}
+      </button>
+    </Link>
+  );
+}
+
+function DashboardCard({ label, value, sub, icon: Icon, color, href }: any) {
+  return (
+    <Link href={href}>
+      <div className="rounded-[2.5rem] border border-white/5 bg-card/40 p-8 shadow-lg transition-all hover:scale-[1.05] hover:border-primary/20 cursor-pointer h-full">
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+          <Icon className={cn("h-5 w-5", color)} />
+        </div>
+        <p className="text-3xl font-black italic tracking-tighter text-foreground leading-none">{value}</p>
+        <p className="mt-3 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{sub}</p>
       </div>
-      <p className="text-4xl font-black italic">{value}</p>
-      <p className="text-[9px] font-bold text-muted-foreground uppercase mt-2">{sub}</p>
-    </div>
+    </Link>
+  );
+}
+
+function AlertBox({ label, value, icon: Icon, color, href }: any) {
+  return (
+    <Link href={href}>
+      <div className="rounded-[2rem] border border-white/5 bg-card/40 p-6 flex items-center justify-between shadow-sm transition-all hover:bg-white/5 cursor-pointer">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
+            <Icon className={cn("h-5 w-5", color)} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase text-muted-foreground">{label}</p>
+            <p className="text-xl font-black italic">{value}</p>
+          </div>
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground/30" />
+      </div>
+    </Link>
   );
 }
