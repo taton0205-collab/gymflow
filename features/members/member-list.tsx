@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2, Copy, Check, Eye, PencilLine, UserCircle2, QrCode, X } from "lucide-react";
+import { Loader2, Trash2, Copy, Check, Eye, PencilLine, UserCircle2, QrCode, X, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { EditMemberForm } from "./edit-member-form";
+import { RenewPlanForm } from "./renew-plan-form";
 
 export function MemberList() {
   const [members, setMembers] = useState<any[]>([]);
@@ -13,6 +14,7 @@ export function MemberList() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<any | null>(null);
+  const [renewingMember, setRenewingMember] = useState<any | null>(null);
   const [showQR, setShowQR] = useState<any | null>(null);
 
   const fetchMembers = async () => {
@@ -69,18 +71,14 @@ export function MemberList() {
             <tr key={member.id} className="group hover:bg-muted/30 transition-all">
               <td className="px-8 py-6">
                 <p className="font-black text-base uppercase italic tracking-tight">{member.full_name}</p>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase mt-0.5 tracking-tighter">DNI: {member.dni || "S/D"}</p>
+                <Badge tone={member.status === 'active' ? 'success' : 'warning'} className="text-[7px] font-black uppercase h-4 px-1.5 mt-1">{member.status}</Badge>
               </td>
               <td className="px-8 py-6">
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowQR(member)}
-                    className="h-10 px-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-2 text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
-                  >
-                    <QrCode className="h-4 w-4" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Ver QR</span>
+                  <button onClick={() => setShowQR(member)} className="h-10 px-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-2 text-primary hover:bg-primary hover:text-white transition-all shadow-sm">
+                    <QrCode className="h-4 w-4" /><span className="text-[9px] font-black uppercase tracking-widest">QR</span>
                   </button>
-                  <button onClick={() => copyToken(member.qr_token, member.id)} className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all">
+                  <button onClick={() => copyToken(member.qr_token, member.id)} className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground">
                     {copiedId === member.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   </button>
                 </div>
@@ -89,12 +87,11 @@ export function MemberList() {
                 <Badge tone="info" className="text-[10px] font-black uppercase tracking-widest px-3 py-1">{member.plans?.name || "Sin Plan"}</Badge>
               </td>
               <td className="px-8 py-6 text-right">
-                <div className="flex items-center justify-end gap-3">
-                  <Link href={`/members/${member.id}` as any}>
-                    <button className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center text-primary shadow-sm hover:shadow-lg transition-all" title="Ficha Médica"><Eye className="h-5 w-5" /></button>
-                  </Link>
-                  <button onClick={() => setEditingMember(member)} className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center text-accent shadow-sm hover:shadow-lg transition-all" title="Editar"><PencilLine className="h-5 w-5" /></button>
-                  <button onClick={() => deleteMember(member.id, member.full_name)} className="h-10 w-10 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-center text-red-500 shadow-sm hover:bg-red-500 transition-all" title="Borrar"><Trash2 className="h-5 w-5" /></button>
+                <div className="flex items-center justify-end gap-2">
+                  <button onClick={() => setRenewingMember(member)} className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-all" title="Renovar Plan"><RefreshCw className="h-4 w-4" /></button>
+                  <Link href={`/members/${member.id}` as any}><button className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center text-muted-foreground shadow-sm hover:text-primary transition-all" title="Ficha"><Eye className="h-4 w-4" /></button></Link>
+                  <button onClick={() => setEditingMember(member)} className="h-10 w-10 bg-background border rounded-xl flex items-center justify-center text-accent shadow-sm hover:text-accent transition-all" title="Editar"><PencilLine className="h-4 w-4" /></button>
+                  <button onClick={() => deleteMember(member.id, member.full_name)} className="h-10 w-10 bg-red-500/5 border border-red-500/10 rounded-xl flex items-center justify-center text-red-500 shadow-sm hover:bg-red-500 hover:text-white transition-all" title="Borrar"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </td>
             </tr>
@@ -102,39 +99,21 @@ export function MemberList() {
         </tbody>
       </table>
 
-      {/* Modal de QR */}
       {showQR && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
            <div className="w-full max-w-sm rounded-[3rem] bg-card border-4 border-primary/30 p-10 text-center space-y-8 shadow-2xl relative">
               <button onClick={() => setShowQR(null)} className="absolute top-6 right-6 h-10 w-10 rounded-full bg-muted flex items-center justify-center"><X className="h-5 w-5" /></button>
-              <div>
-                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-foreground">{showQR.full_name}</h3>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-2">Identificador Intransferible</p>
+              <h3 className="text-2xl font-black uppercase italic tracking-tighter text-foreground">{showQR.full_name}</h3>
+              <div className="bg-white p-6 rounded-[2rem] inline-block shadow-inner border-8 border-primary/10">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${showQR.qr_token}`} alt="QR" className="h-40 w-48" />
               </div>
-              <div className="bg-white p-6 rounded-[2rem] inline-block shadow-inner mx-auto border-8 border-primary/10">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${showQR.qr_token}`}
-                  alt="QR Access"
-                  className="h-48 w-48"
-                />
-              </div>
-              <div className="space-y-4">
-                <Badge tone="info" className="font-black uppercase tracking-widest px-4 py-1.5">{showQR.plans?.name || "Sin Rango"}</Badge>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-6">
-                  Presenta este código en la entrada para validar tu ingreso al coliseo.
-                </p>
-              </div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed px-6 italic">Presenta este código para validar tu ingreso al coliseo.</p>
            </div>
         </div>
       )}
 
-      {editingMember && (
-        <EditMemberForm
-          member={editingMember}
-          onUpdate={fetchMembers}
-          onClose={() => setEditingMember(null)}
-        />
-      )}
+      {editingMember && <EditMemberForm member={editingMember} onUpdate={fetchMembers} onClose={() => setEditingMember(null)} />}
+      {renewingMember && <RenewPlanForm member={renewingMember} onUpdate={fetchMembers} onClose={() => setRenewingMember(null)} />}
     </div>
   );
 }
