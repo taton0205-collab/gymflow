@@ -15,41 +15,26 @@ export function InventoryList() {
 
   const fetchData = async () => {
     const supabase = createClient();
-
-    // 1. Obtener Items del Inventario
-    const { data: inventoryData } = await supabase
-      .from("inventory_items")
-      .select("*")
-      .order("name", { ascending: true });
-
-    // 2. Obtener solo ventas de PRODUCTOS (Filtro estricto "VENTA:")
-    const { data: paymentsData } = await supabase
-      .from("payments")
-      .select("amount, cost_basis")
-      .ilike("notes", "VENTA:%"); // <--- ESTO ES CLAVE
+    const { data: inventoryData } = await supabase.from("inventory_items").select("*").order("name", { ascending: true });
+    const { data: paymentsData } = await supabase.from("payments").select("amount, cost_basis").ilike("notes", "VENTA:%");
 
     if (inventoryData) setItems(inventoryData);
-
     if (!paymentsData || paymentsData.length === 0) {
       setRealizedProfit(0);
       setTotalSales(0);
     } else {
       const profit = paymentsData.reduce((acc, p) => acc + (Number(p.amount) - Number(p.cost_basis || 0)), 0);
-      const total = paymentsData.reduce((acc, p) => acc + Number(p.amount), 0);
       setRealizedProfit(profit);
-      setTotalSales(total);
+      setTotalSales(paymentsData.reduce((acc, p) => acc + Number(p.amount), 0));
     }
-
     setLoading(false);
   };
 
   const handleSell = async (item: any) => {
     if (item.stock <= 0) return alert("¡Sin stock!");
     if (!confirm(`¿Confirmar venta de ${item.name}?`)) return;
-
     setSellingId(item.id);
     const supabase = createClient();
-
     try {
       await supabase.from("payments").insert([{
         gym_id: item.gym_id,
@@ -59,17 +44,21 @@ export function InventoryList() {
         method: "cash",
         status: "paid",
         paid_at: new Date().toISOString(),
-        notes: `VENTA: ${item.name}`, // Prefijo para el contador
+        notes: `VENTA: ${item.name}`,
         due_date: new Date().toISOString().split('T')[0]
       }]);
-
       await supabase.from("inventory_items").update({ stock: item.stock - 1 }).eq("id", item.id);
       fetchData();
-    } catch (e: any) {
-      alert("Error: " + e.message);
-    } finally {
-      setSellingId(null);
-    }
+    } catch (e) { alert("Error"); } finally { setSellingId(null); }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`¿Eliminar permanentemente "${name}"?`)) return;
+    const supabase = createClient();
+    try {
+      await supabase.from("inventory_items").delete().eq("id", id);
+      fetchData();
+    } catch (e) { alert("Error al borrar"); }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -81,7 +70,7 @@ export function InventoryList() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SummaryCard label="Ventas de Productos" value={"$" + new Intl.NumberFormat("es-AR").format(totalSales)} icon={DollarSign} sub="Caja total productos" />
         <SummaryCard label="Ganancia Realizada" value={"$" + new Intl.NumberFormat("es-AR").format(realizedProfit)} icon={PiggyBank} tone="profit" sub="Beneficio acumulado" />
-        <SummaryCard label="Inversión Actual" value={"$" + new Intl.NumberFormat("es-AR").format(items.reduce((acc, i) => acc + ((i.cost || 0) * i.stock), 0))} icon={Boxes} sub="Plata en mercadería" />
+        <SummaryCard label="Inversión en Stock" value={"$" + new Intl.NumberFormat("es-AR").format(items.reduce((acc, i) => acc + ((i.cost || 0) * i.stock), 0))} icon={Boxes} sub="Mercadería actual" />
       </div>
 
       {items.length === 0 ? (
@@ -98,6 +87,9 @@ export function InventoryList() {
               <div key={item.id} className={cn("group relative flex flex-col rounded-[2.5rem] border bg-card p-8 shadow-sm transition-all hover:shadow-2xl hover:border-primary/30", isLowStock && "border-red-500/20 bg-red-500/[0.02]")}>
                 <div className="flex items-start justify-between">
                   <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center shadow-inner"><ShoppingBag className={cn("h-7 w-7 text-muted-foreground", isLowStock && "text-red-500")} /></div>
+                  <button onClick={() => handleDelete(item.id, item.name)} className="h-10 w-10 bg-red-500/10 text-red-500 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                    <Trash2 className="h-5 w-5" />
+                  </button>
                 </div>
                 <div className="mt-8">
                   <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{item.category}</p>
@@ -105,7 +97,7 @@ export function InventoryList() {
                 </div>
                 <div className="mt-6 space-y-4">
                   <div className="bg-green-500/10 rounded-xl p-3 border border-green-500/20">
-                    <p className="text-[9px] font-black text-green-500 uppercase">Ganancia x Unidad</p>
+                    <p className="text-[9px] font-black text-green-500 uppercase">Beneficio Neto</p>
                     <p className="text-lg font-black text-green-500 italic mt-1">+ ${new Intl.NumberFormat("es-AR").format(unitProfit)}</p>
                   </div>
                   <div className="flex justify-between items-center px-1">
